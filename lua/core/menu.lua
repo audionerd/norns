@@ -321,36 +321,45 @@ m.sel.list = {}
 m.sel.len = 0
 m.sel.file = ""
 
-local function build_select_tree(root,dir)
-  --print("-- " .. root .. dir)
-  local p = root .. dir
-  local c = util.scandir(p)
+local function build_select_tree(directory)
+  local pfile = io.popen('find "'..directory..'" -type f -name "*.lua"')
 
-  for _,v in pairs(c) do
-    --print("---- " .. v)
-    if v == "data/" or v == "audio/" or v == 'lib/' or v == "docs" then
-      --print(".")
-    elseif string.find(v,'/') then
-      build_select_tree(p,v)
-    elseif string.find(v,'.lua') then
-      local file = p .. v
-      local n = string.gsub(v,'.lua','/')
-      if n ~= dir then
-        --print("strip folder")
-        n = p .. n
+  for line in pfile:lines() do
+    local parts = tab.split(line, "/")
+    local scriptfile = parts[#parts]
+    local folder = string.sub(line, 0, -(string.len(scriptfile) + 1 + 1))
+
+    if not (
+      string.match(line, "data/") or
+      string.match(line, "audio/") or
+      string.match(line, "lib/") or
+      string.match(line, "docs/")
+    ) then
+      local parts = tab.split(folder, "/")
+      local parentfolder = parts[#parts]
+      local scriptname = string.gsub(scriptfile, '.lua', '')
+
+      local name
+      if parentfolder == scriptname then
+        name = scriptname
       else
-        n = p
+        name = string.gsub(folder, directory, '').."/"..scriptname
       end
-      n = string.gsub(n,_path.code,'')
-      n = string.sub(n,0,-2)
-      table.insert(m.sel.list,{name=n,file=file,path=p})
+
+      table.insert(m.sel.list,{name=name,file=line,path=folder})
     end
   end
+  pfile:close()
+
+  function compare(a,b)
+    return a.name < b.name
+  end
+  table.sort(m.sel.list, compare)
 end
 
 m.init[pSELECT] = function()
   m.sel.list = {}
-  build_select_tree(_path.code,"")
+  build_select_tree(_path.code)
   --for k,v in pairs(m.sel.list) do
     --print(k, v.name, v.file, v.path)
   --end

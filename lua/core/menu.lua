@@ -337,7 +337,7 @@ local function build_select_tree(directory)
     ) then
       local parts = tab.split(folder, "/")
       local parentfolder = parts[#parts]
-      local scriptname = string.gsub(scriptfile, '.lua', '')
+      local scriptname = string.sub(scriptfile, 0, -5)
 
       local name
       if parentfolder == scriptname then
